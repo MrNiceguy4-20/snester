@@ -1351,8 +1351,9 @@ class CPU {
             let relLow = memory.read(bank: pbr, addr: pc); pc &+= 1
             let relHigh = memory.read(bank: pbr, addr: pc); pc &+= 1
             let relOffset = (UInt16(relHigh) << 8) | UInt16(relLow)
-            let address = pc &+ relOffset
-            pushWord(address)
+            let signedOffset = Int16(bitPattern: relOffset)
+            let effective = (Int(pc) + Int(signedOffset)) & 0xFFFF
+            pushWord(UInt16(effective))
             return 6
             
         case 0x63: // ADC (Stack Relative)
