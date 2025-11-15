@@ -18,15 +18,15 @@ class MemoryBus {
         case (0x00...0x3F, 0x0000...0x1FFF):
             return ram.data[Int(addr)]
         
-        case (0x00...0x3F, 0x2100...0x213F):
+        case (0x00...0x3F, 0x2100...0x213F), (0x80...0xBF, 0x2100...0x213F):
             // PPU control/status reads (VRAM, CGRAM, OAM status/data)
             return ppu?.readRegister(addr: addr) ?? 0
         
-        case (0x00...0x3F, 0x2140...0x2143):
+        case (0x00...0x3F, 0x2140...0x2143), (0x80...0xBF, 0x2140...0x2143):
             // APU Port Reads
             return apu?.readRegister(addr: addr) ?? 0
         
-        case (0x00...0x3F, 0x4200...0x421F):
+        case (0x00...0x3F, 0x4200...0x421F), (0x80...0xBF, 0x4200...0x421F):
             // S-CPU Status/Control Registers
             if addr == 0x4210 { return ppu?.readNMIStatus() ?? 0 }
             if addr == 0x4211 { return dma?.readDMAStatus() ?? 0 } // DMA Enable Status Read
@@ -38,7 +38,7 @@ class MemoryBus {
             }
             return 0
         
-        case (0x00...0x3F, 0x6000...0x7FFF):
+        case (0x00...0x3F, 0x6000...0x7FFF), (0x80...0xBF, 0x6000...0x7FFF):
             return ram.data[Int(addr & 0x1FFF)]
         
         case (0x00...0x3F, 0x8000...0xFFFF):
@@ -65,15 +65,15 @@ class MemoryBus {
         case (0x00...0x3F, 0x0000...0x1FFF):
             ram.data[Int(addr)] = data
         
-        case (0x00...0x3F, 0x2100...0x213F):
+        case (0x00...0x3F, 0x2100...0x213F), (0x80...0xBF, 0x2100...0x213F):
             // PPU control/status writes
             ppu?.writeRegister(addr: addr, data: data)
             
-        case (0x00...0x3F, 0x2140...0x217F):
+        case (0x00...0x3F, 0x2140...0x217F), (0x80...0xBF, 0x2140...0x217F):
             // APU/DSP writes
             apu?.writeRegister(addr: addr, data: data)
             
-        case (0x00...0x3F, 0x4200...0x421F):
+        case (0x00...0x3F, 0x4200...0x421F), (0x80...0xBF, 0x4200...0x421F):
             // S-CPU Control/DMA writes
             if addr == 0x420B { dma?.startTransfer(data: data); return } // DMA Enable
             if addr == 0x4200 {
@@ -89,13 +89,13 @@ class MemoryBus {
                 return
             }
             return
-        case (0x00...0x3F, 0x4016):
+        case (0x00...0x3F, 0x4016), (0x80...0xBF, 0x4016):
             controller?.writeRegister(addr: addr, data: data)
             return
-        case (0x00...0x3F, 0x4300...0x437F):
+        case (0x00...0x3F, 0x4300...0x437F), (0x80...0xBF, 0x4300...0x437F):
             // DMA Register writes
             dma?.writeRegister(addr: addr, data: data)
-        case (0x00...0x3F, 0x6000...0x7FFF):
+        case (0x00...0x3F, 0x6000...0x7FFF), (0x80...0xBF, 0x6000...0x7FFF):
             ram.data[Int(addr & 0x1FFF)] = data
         case (0x7E...0x7F, 0x0000...0xFFFF):
             ram.data[Int(addr) + (Int(bank - 0x7E) * 0x10000)] = data
