@@ -54,6 +54,7 @@ class CPU {
     }
     
     func nmi() {
+        stopped = false
         push(UInt8(pbr))
         pushWord(pc)
         push(p)
