@@ -556,10 +556,12 @@ class CPU {
             let low = memory.read(bank: pbr, addr: pc)
             pc &+= 1
             let high = memory.read(bank: pbr, addr: pc)
+            pc &+= 1
             pushWord(pc &- 1)
             pc = (UInt16(high) << 8) | UInt16(low)
             return 6
             
+        
         case 0x21: // AND (DP Indirect, X)
             let dpAddr = UInt16(memory.read(bank: pbr, addr: pc)); pc &+= 1
             let finalAddr = getIndirectAddr(dpAddr: dpAddr, indexedBy: x)
