@@ -1720,7 +1720,9 @@ class CPU {
             let low = memory.read(bank: pbr, addr: pc); pc &+= 1
             let high = memory.read(bank: pbr, addr: pc); pc &+= 1
             let offset = (UInt16(high) << 8) | UInt16(low)
-            pc = pc &+ offset
+            let signedOffset = Int16(bitPattern: offset)
+            let newPC = (Int(pc) + Int(signedOffset)) & 0xFFFF
+            pc = UInt16(newPC)
             return 4
             
         case 0x83: // STA (Stack Relative)
