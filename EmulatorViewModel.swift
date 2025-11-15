@@ -42,8 +42,13 @@ class EmulatorViewModel: ObservableObject {
             .sink { [weak self] newFrame in
                 guard let self = self else { return }
                 
-                // Copy new frame data directly to the shared Metal buffer
-                self.sharedVideoBuffer.contents().copyMemory(from: newFrame, byteCount: self.videoBufferSize)
+                
+                newFrame.withUnsafeBytes { bytes in
+                    guard let baseAddress = bytes.baseAddress else { return }
+                    let byteCount = min(bytes.count, self.videoBufferSize)
+                    self.sharedVideoBuffer.contents().copyMemory(from: baseAddress, byteCount: byteCount)
+                }
+
                 
                 self.updateFPS()
             }

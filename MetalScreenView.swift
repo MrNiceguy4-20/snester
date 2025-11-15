@@ -12,12 +12,37 @@ struct MetalScreenView: NSViewRepresentable {
         var commandQueue: MTLCommandQueue
         var renderPipelineState: MTLRenderPipelineState?
         var screenTexture: MTLTexture?
+        private var quadVertices: [Float] = [
+            -1.0, -1.0, 0.0, 1.0,
+             1.0, -1.0, 1.0, 1.0,
+            -1.0,  1.0, 0.0, 0.0,
+             1.0,  1.0, 1.0, 0.0
+        ]
 
         init(_ parent: MetalScreenView) {
             self.parent = parent
             self.device = MTLCreateSystemDefaultDevice()!
             self.commandQueue = device.makeCommandQueue()!
             super.init()
+            buildPipelineState()
+        }
+
+        private func buildPipelineState() {
+            guard let library = device.makeDefaultLibrary() else {
+                assertionFailure("Unable to create default Metal library")
+                return
+            }
+
+            let pipelineDescriptor = MTLRenderPipelineDescriptor()
+            pipelineDescriptor.vertexFunction = library.makeFunction(name: "vertex_main")
+            pipelineDescriptor.fragmentFunction = library.makeFunction(name: "fragment_main")
+            pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
+
+            do {
+                renderPipelineState = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
+            } catch {
+                assertionFailure("Failed to create pipeline state: \(error)")
+            }
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
@@ -43,6 +68,9 @@ struct MetalScreenView: NSViewRepresentable {
             
             let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
             encoder.setRenderPipelineState(renderPipelineState)
+            encoder.setVertexBytes(&quadVertices,
+                                   length: quadVertices.count * MemoryLayout<Float>.size,
+                                   index: 0)
             encoder.setFragmentTexture(texture, index: 0)
             encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
             encoder.endEncoding()
@@ -68,7 +96,7 @@ struct MetalScreenView: NSViewRepresentable {
         context.coordinator.screenTexture = device.makeTexture(descriptor: textureDescriptor)
         
         return mtkView
+        }
+        
+        func updateNSView(_ nsView: MTKView, context: Context) {}
     }
-    
-    func updateNSView(_ nsView: MTKView, context: Context) {}
-}

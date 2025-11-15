@@ -39,6 +39,7 @@ class DMA {
     }
     
     func readDMAStatus() -> UInt8 {
+        // Returns the current state of DMA transfers ($4211)
         return transferEnable
     }
     
@@ -92,9 +93,9 @@ class DMA {
     }
     
     func performTransferBlock(channelIndex: Int, channel: inout Channel) -> Int {
-        guard let memory = memory, let ppu = ppu else { return 0 }
+        guard let memory = memory else { return 0 }
         
-        let dmaBlockCycles = 8
+        let dmaBlockCycles = 8 // Cycles consumed per byte transferred (simplified)
         var cycles = 0
         
         let bytesPerBlock = (Int(channel.transferMode) + 1)
@@ -104,13 +105,12 @@ class DMA {
             if channel.currentTransferSize == 0 {
                 channel.enabled = false
                 transferEnable &= ~(1 << channelIndex)
-                print("[DMA] Channel \(channelIndex) Finished. $4211 is now \(String(format: "%02X", transferEnable))") // ADDED TRACE
-                ppu.resetDMAState()
+                print("[DMA] Channel \(channelIndex) Finished. $4211 is now \(String(format: "%02X", transferEnable))")
                 return cycles
             }
             
             let aAddr = (UInt32(channel.aBusBank) << 16) | UInt32(channel.currentAAddress)
-            let data = memory.read(aAddr)
+            let data = memory.read(aAddr) // Read from A-Bus Source
             
             var destAddr = channel.bBusAddress
             
@@ -122,12 +122,9 @@ class DMA {
             default: destAddr = channel.bBusAddress
             }
             
-            switch destAddr {
-            case 0x2104: ppu.writeRegister(addr: 0x2104, data: data)
-            case 0x2118, 0x2119: ppu.writeRegister(addr: destAddr, data: data)
-            case 0x2122: ppu.writeRegister(addr: 0x2122, data: data)
-            default: memory.write(bank: 0x00, addr: destAddr, data: data)
-            }
+            // FIX: Route write through the main bus write function (B-Bus access is always bank 00)
+            // This triggers PPU write side-effects (e.g., OAM/VRAM auto-increment).
+            memory.write(bank: 0x00, addr: destAddr, data: data)
             
             if !channel.fixed {
                 channel.currentAAddress &+= 1
@@ -200,12 +197,14 @@ class DMA {
                 guard channel.hdmaActive else { continue }
                 
                 if channel.hdmaDeferredTransfer > 0 {
-                    totalCycles += 8
+                    totalCycles += 8 // Cycles taken for HDMA block
                     
+                    // Perform transfer block
                     for _ in 0..<(Int(channel.transferMode) + 1) {
                          let aAddr = (UInt32(channel.aBusBank) << 16) | UInt32(channel.currentAAddress)
                          let data = memory!.read(aAddr)
                         
+                         // Route write through the memory bus for side effects
                          memory!.write(bank: 0x00, addr: channel.bBusAddress, data: data)
                         
                          if !channel.fixed {

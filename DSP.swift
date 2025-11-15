@@ -25,7 +25,7 @@ class DSP {
         var brrDecoderHistory: (prev1: Int16, prev2: Int16) = (0, 0)
         var currentBlockByte: UInt8 = 0
         var sampleIndexInBlock: Int = 0
-        var sampleAddressPitchAccumulator: Float = 0.0
+        var sampleAddressPitchAccumulator: Float = 0.0 // Phase accumulator for tone generation
         var adsrRegisters: UInt32 = 0
     }
     
@@ -68,10 +68,17 @@ class DSP {
                 break
             }
             
+            // FIX: Added simulated tone generation logic
             let pitchRatio = Float(channel.pitch) / 4096.0
             channel.sampleAddressPitchAccumulator += pitchRatio
             
-            let rawSample: Float = 0.0
+            // Wrap phase accumulator
+            if channel.sampleAddressPitchAccumulator >= 1.0 {
+                channel.sampleAddressPitchAccumulator -= 1.0
+            }
+            
+            let phase = channel.sampleAddressPitchAccumulator * 2.0 * Float.pi
+            let rawSample: Float = sin(phase) // Simulated sine wave tone
             
             let sampleOutput = rawSample * channel.envVolume
             

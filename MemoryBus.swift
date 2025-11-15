@@ -3,7 +3,7 @@ import Foundation
 class MemoryBus {
     
     weak var rom: ROM?
-    var ram: RAM!
+    var ram: RAM! // Assuming RAM class is defined elsewhere
     weak var cpu: CPU?
     weak var ppu: PPU?
     weak var dma: DMA?
@@ -19,19 +19,23 @@ class MemoryBus {
             return ram.data[Int(addr)]
         
         case (0x00...0x3F, 0x2100...0x213F):
-            if addr >= 0x2140 && addr <= 0x2143 {
-                return apu?.readRegister(addr: addr) ?? 0
-            }
+            // PPU control/status reads (VRAM, CGRAM, OAM status/data)
             return ppu?.readRegister(addr: addr) ?? 0
         
+        case (0x00...0x3F, 0x2140...0x2143):
+            // APU Port Reads
+            return apu?.readRegister(addr: addr) ?? 0
+        
         case (0x00...0x3F, 0x4200...0x421F):
+            // S-CPU Status/Control Registers
             if addr == 0x4210 { return ppu?.readNMIStatus() ?? 0 }
-            if addr == 0x4211 { return dma?.readDMAStatus() ?? 0 }
-            if addr == 0x4218 || addr == 0x4219 {
+            if addr == 0x4211 { return dma?.readDMAStatus() ?? 0 } // DMA Enable Status Read
+            if addr == 0x4218 || addr == 0x4219 { // Controller Port 1/2 Read
                 return controller?.readRegister(addr: addr) ?? 0
             }
-            // ADDED: H/V Timer Status Read (4212)
-            if addr == 0x4212 { return ppu?.readRegister(addr: addr) ?? 0 }
+            if addr >= 0x4212 && addr <= 0x4217 { // V/H Status and Counters
+                return ppu?.readRegister(addr: addr) ?? 0
+            }
             return 0
         
         case (0x00...0x3F, 0x6000...0x7FFF):
@@ -62,27 +66,26 @@ class MemoryBus {
             ram.data[Int(addr)] = data
         
         case (0x00...0x3F, 0x2100...0x213F):
-            if addr >= 0x2140 && addr <= 0x2143 {
-                apu?.writeRegister(addr: addr, data: data)
-                return
-            }
-            if addr >= 0x2144 && addr <= 0x217F {
-                apu?.writeRegister(addr: addr, data: data)
-                return
-            }
+            // PPU control/status writes
             ppu?.writeRegister(addr: addr, data: data)
             
+        case (0x00...0x3F, 0x2140...0x217F):
+            // APU/DSP writes
+            apu?.writeRegister(addr: addr, data: data)
+            
         case (0x00...0x3F, 0x4200...0x421F):
-            // Check for H/V Timer settings ($4207-420A)
-            if addr >= 0x4207 && addr <= 0x420A {
+            // S-CPU Control/DMA writes
+            if addr == 0x420B { dma?.startTransfer(data: data); return } // DMA Enable
+            if addr == 0x4200 { controller?.writeRegister(addr: addr, data: data) } // NMITIMEN/Strobe
+            if addr == 0x4203 { apu?.writeRegister(addr: addr, data: data) } // APU Reset
+            
+            // H/V Timer settings (4207-420A) and other control
+            if addr >= 0x4207 && addr <= 0x420A || addr == 0x420B {
                 ppu?.writeRegister(addr: addr, data: data)
                 return
             }
-            
-            if addr == 0x420B { dma?.startTransfer(data: data) }
-            if addr == 0x4200 { controller?.writeRegister(addr: addr, data: data) }
-            if addr == 0x4203 { apu?.writeRegister(addr: addr, data: data) }
         case (0x00...0x3F, 0x4300...0x437F):
+            // DMA Register writes
             dma?.writeRegister(addr: addr, data: data)
         case (0x00...0x3F, 0x6000...0x7FFF):
             ram.data[Int(addr & 0x1FFF)] = data
