@@ -16,7 +16,7 @@ class CPU {
     
     weak var memory: MemoryBus?
     
-    var e: Bool { (p & 0x01) != 0 }
+    var e: Bool = true
     var m: Bool { (p & 0x20) != 0 }
     var xFlag: Bool { (p & 0x10) != 0 }
     
@@ -45,6 +45,7 @@ class CPU {
         db = 0
         pbr = 0
         p = 0x34
+        e = true
         
         let low = memory.read(bank: 0x00, addr: 0xFFFC)
         let high = memory.read(bank: 0x00, addr: 0xFFFD)
@@ -2429,8 +2430,8 @@ class CPU {
             let oldX = xFlag
             p &= ~mask
             
-            if oldM && !m { a &= 0x00FF }
-            if oldX && !xFlag { x &= 0x00FF; y &= 0x00FF }
+            if !oldM && m { a &= 0x00FF }
+            if !oldX && xFlag { x &= 0x00FF; y &= 0x00FF }
             
             updateP(a)
             return 3
@@ -2781,8 +2782,8 @@ class CPU {
             let oldX = xFlag
             p |= mask
             
-            if oldM && !m { a &= 0x00FF }
-            if oldX && !xFlag { x &= 0x00FF; y &= 0x00FF }
+            if !oldM && m { a &= 0x00FF }
+            if !oldX && xFlag { x &= 0x00FF; y &= 0x00FF }
             
             updateP(a)
             return 3
@@ -3059,9 +3060,14 @@ class CPU {
         case 0xFB: // XCE (Exchange Carry and Emulation flags)
             let oldE = e
             let oldC = (p & Flag.C.rawValue) != 0
-            if oldC { p |= 0x01 } else { p &= ~0x01 }
-            if oldE { p |= Flag.C.rawValue } else { p &= ~Flag.C.rawValue }
-
+            if oldE {
+                p |= Flag.C.rawValue
+            } else {
+                p &= ~Flag.C.rawValue
+            }
+                
+            e = oldC
+            
             if e {
                 p |= Flag.M.rawValue
                 p |= Flag.X.rawValue
