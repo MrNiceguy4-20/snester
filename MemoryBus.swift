@@ -76,14 +76,22 @@ class MemoryBus {
         case (0x00...0x3F, 0x4200...0x421F):
             // S-CPU Control/DMA writes
             if addr == 0x420B { dma?.startTransfer(data: data); return } // DMA Enable
-            if addr == 0x4200 { controller?.writeRegister(addr: addr, data: data) } // NMITIMEN/Strobe
-            if addr == 0x4203 { apu?.writeRegister(addr: addr, data: data) } // APU Reset
-            
-            // H/V Timer settings (4207-420A) and other control
-            if addr >= 0x4207 && addr <= 0x420A || addr == 0x420B {
+            if addr == 0x4200 {
+                controller?.writeRegister(addr: addr, data: data)
                 ppu?.writeRegister(addr: addr, data: data)
                 return
             }
+            if addr == 0x4203 { apu?.writeRegister(addr: addr, data: data) } // APU Reset
+            
+            // H/V Timer settings (4207-420A) and other control
+            if addr >= 0x4207 && addr <= 0x420A || addr == 0x420C {
+                ppu?.writeRegister(addr: addr, data: data)
+                return
+            }
+            return
+        case (0x00...0x3F, 0x4016):
+            controller?.writeRegister(addr: addr, data: data)
+            return
         case (0x00...0x3F, 0x4300...0x437F):
             // DMA Register writes
             dma?.writeRegister(addr: addr, data: data)
@@ -93,6 +101,9 @@ class MemoryBus {
             ram.data[Int(addr) + (Int(bank - 0x7E) * 0x10000)] = data
         case (0x80...0xBF, 0x0000...0x1FFF):
             ram.data[Int(addr)] = data
+        case (0x80...0xBF, 0x4016):
+            controller?.writeRegister(addr: addr, data: data)
+            return
         default: break
         }
     }

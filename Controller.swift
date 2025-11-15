@@ -67,7 +67,8 @@ class Controller {
     
     func writeRegister(addr: UInt16, data: UInt8) {
         // Controller strobe/latch is done by writing to $4200 (NMI/Controller Enable)
-        if addr != 0x4200 { return }
+        guard addr == 0x4016 else { return }
+
         
         // The strobe pulse is signaled by setting bit 0 high.
         // The state is latched on the high-to-low transition (when the bit is cleared).

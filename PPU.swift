@@ -20,7 +20,7 @@ class PPU {
     
     var inidisp: UInt8 = 0
     var forceBlank: Bool { (inidisp & 0x80) != 0 }
-    var nmiEnable: Bool { (inidisp & 0x80) != 0 }
+    var nmiEnable: Bool = false
     
     var bgMode: UInt8 = 0
     
@@ -742,6 +742,10 @@ class PPU {
             oamAddress &= 0x1FF
         case 0x2130: tm = data
         case 0x2131: ts = data
+        case 0x4200:
+            nmiEnable = (data & 0x80) != 0
+            hTimerEnabled = (data & 0x40) != 0
+            vTimerEnabled = (data & 0x20) != 0
         case 0x420C: dma?.hdmaEnable = data
         case 0x2132:
             fixedColorB = data & 0x1F
@@ -761,9 +765,7 @@ class PPU {
         case 0x4208: hTimer = (hTimer & 0x00FF) | (UInt16(data) << 8)
         case 0x4209: vTimer = (vTimer & 0xFF00) | UInt16(data); irqTriggered = false
         case 0x420A: vTimer = (vTimer & 0x00FF) | (UInt16(data) << 8)
-        case 0x420B: // NMITIMEN
-            hTimerEnabled = (data & 0x20) != 0
-            vTimerEnabled = (data & 0x40) != 0
+        
         default: break
         }
     }
